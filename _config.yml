@@ -11,7 +11,7 @@
 #    |  |  \   --. /  .'.  \  |  |
 #    `--'   `----''--'   '--' `--'
 
-text_color_theme: dark #eg: default | dark | forest | ocean | chocolate | orange
+text_color_theme: forest #eg: default | dark | forest | ocean | chocolate | orange
 ## Base settings ##
 url: http://notebook.menchi.xyz
 baseurl: /
