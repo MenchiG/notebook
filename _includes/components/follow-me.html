@@ -67,6 +67,15 @@
         </div>
       </li>
     {%- endif -%}
+    {%- if site.author.instagram -%}
+    <li title="{{ __return | replace: '[NAME]', 'Instagram' }}">
+      <div class="floating-action-round-button instagram">
+        <a itemprop="sameAs" href="https://www.instagram.com/{{ site.author.instagram }}" target="_blank">
+          <div class="icon">{%- include icon/social/instagram.svg -%}</div>
+        </a>
+      </div>
+    </li>
+    {%- endif -%}
   </ul>
   {%- if site.author.email -%}
   {%- assign __locale = site.data.locale.EMAIL_ME -%}

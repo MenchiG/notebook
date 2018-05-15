@@ -8,15 +8,13 @@ titles:
 key: page-about
 ---
 
-Welcome to my blog! :earth_asia: :earth_africa: :earth_americas:
+A fresh bloger. :+1:
 
-{% highlight javascript %}
-(() => console.log('hello, world!'))();
+Love cooking:meat_on_bone:, bartender:cocktail: and boardgames:game_die:
+
+Studying Modern Java Development
+Spring Boot
+
+{% highlight java %}
+  System.out.println("hello, world")
 {% endhighlight %}
-
-## Skills
-
-- HTML5, CSS3(SASS), JavaScript(ES2017, Node.js), Bash(Zsh)
-- React, React Native, Vue.js
-- gulp, webpack
-- Adobe Photoshop, Sketch
