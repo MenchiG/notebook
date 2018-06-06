@@ -7,6 +7,44 @@ category: blog
 ---
 
 Some git use cases.<!--more-->
+
+### Global settings for line endings
+
+####  OS X or Linux
+
+`git config --global core.autocrlf input`
+
+#### Windows
+
+`git config --global core.autocrlf true`
+
+#### Refreshing a repository after changing line endings
+
+```
+git add . -u
+git commit -m "Saving files before refreshing line endings"
+
+rm .git/index
+git reset
+git status
+git add -u
+git commit -m "Normalize all the line endings"
+```
+
+### Edit Commit
+	
+#### Commit has not been pushed online
+
+`git commit --amend`
+
+#### Amending older or multiple commit messages
+
+`git rebase -i HEAD~n`
+
+Replace pick with `reword` before each commit message you want to change.
+
+`git push --force`
+
 ### Squash Multiple Commits Into One
 
 n is the number of commits that will be combined.

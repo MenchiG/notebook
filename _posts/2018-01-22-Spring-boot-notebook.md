@@ -11,9 +11,13 @@ Some notes for Spring Boot and Spring Cloud<!--more-->
 
 ## Annotation
 
+### Spring Boot
+
+`@SpringBootApplication`
+
 ### JPA(Java persistent API)
 
-@Embeddable vs @Entity
+`@Embeddable` vs `@Entity`
 
 In OO relationship
 
@@ -29,13 +33,13 @@ Assume we have **user** and **address**, if query **address** separately is nece
 
 ### Message Queue
 
-@EnableBinding(Source.class)
+`@EnableBinding(Source.class)`
 
 ​	Message publisher
 
-@EnableBinding(Sink.class)
+`@EnableBinding(Sink.class)`
 
-@ServiceActivator(inputChannel = Sink.INPUT)
+`@ServiceActivator(inputChannel = Sink.INPUT)`
 
 ​	Message consumer
 
@@ -43,19 +47,19 @@ Assume we have **user** and **address**, if query **address** separately is nece
 
 Use service name as url instead of practice address and port number
 
-@EnableDiscoveryClient
+`@EnableDiscoveryClient`
 
 ​	Register to Eureka
 
 ### Hystrix
 
-@EnableCircuitBreaker
+`@EnableCircuitBreaker`
 
-@HystrixCommand
+`@HystrixCommand`
 
 ### Utility
 
-@Slf4j
+`@Slf4j`
 
 ​	Simple log, use object log instead of logger factory
 
@@ -66,6 +70,277 @@ Use service name as url instead of practice address and port number
 ## Parent POM
 
 modules: share dependency Management
+
+## Design Skill
+
+### Class Injection
+
+In `application.yml`
+
+```yaml
+key: 1
+appId: 1
+```
+
+Class Defination
+
+```java
+public class TestClass {
+
+    private String appKey;
+
+    private String appId;
+
+    public static class Builder{
+
+        private String appKey;
+
+        private String appId;
+
+        public Builder setKey(String appKey){
+            this.appKey = appKey;
+            return this;
+        }
+
+        public Builder setAppId(String appId){
+            this.appId = appId;
+            return this;
+        }
+
+        public TestClass build(){
+            return new TestClass(this);
+        }
+    }
+
+    public static Builder options(){
+        return new TestClass.Builder();
+    }
+
+    private TestClass(Builder builder){
+        this.appKey = builder.appKey;
+        this.appId = builder.appId;
+    }
+
+    public String getAppKey() {
+        return appKey;
+    }
+
+    public String getAppId() {
+        return appId;
+    }
+}
+```
+
+Then add code in a class annotated by `@SpringBootConfiguration`
+
+```java
+	@Value("${appKey}")
+	private String appKey;
+	@Value("${appId}")
+	private String appId;
+
+	@Bean
+	public TestClass testClass(){
+        return TestClass.options()
+                .setAppKey(appKey)
+                .setAppId(appId)
+                .build();
+    }
+```
+
+When use TestClass
+
+```java
+	@Autowired
+	private TestClass testClass;
+```
+
+### Interceptor
+
+Create a new interceptor class implements `HandlerInterceptor`
+
+```java
+public class ApiInterceptor implements HandlerInterceptor {
+    //Before Request
+    @Override
+    public boolean preHandle(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object o) throws Exception {
+        System.out.println("Going into interceptor");
+        return true;
+    }
+    //Requesting
+    @Override
+    public void postHandle(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object o, ModelAndView modelAndView) throws Exception {
+
+    }
+    //After Request
+    @Override
+    public void afterCompletion(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object o, Exception e) throws Exception {
+
+    }
+}
+```
+
+Class with `@SpringBootConfiguration` extends `WebMvcConfigurationSupport`, and overrides `addInterceptors` method to add `ApiInterceptor` interceptor class
+
+```java
+@SpringBootConfiguration
+public class WebConfig extends WebMvcConfigurationSupport{
+
+    @Override
+    protected void addInterceptors(InterceptorRegistry registry) {
+        super.addInterceptors(registry);
+        registry.addInterceptor(new ApiInterceptor());
+    }
+}
+```
+
+### Handle Exception
+
+```java
+@Aspect
+@Component
+public class WebExceptionAspect {
+
+    private static final Logger logger = LoggerFactory.getLogger(WebExceptionAspect.class);
+
+	//method with @RequestMapping will be intercepted   
+	@Pointcut("@annotation(org.springframework.web.bind.annotation.RequestMapping)")
+    private void webPointcut() {
+    }
+
+    /**
+     * Intercetpt web layer exception，log，and response
+     *
+     * @param e 
+     *       		exception object     
+     */
+    @AfterThrowing(pointcut = "webPointcut()", throwing = "e")
+    public void handleThrowing(Exception e) {
+        e.printStackTrace();
+        logger.error("Exception！" + e.getMessage());
+        logger.error(JSON.toJSONString(e.getStackTrace()));
+        //Input friendly content
+        writeContent("Exception");
+    }
+
+    /**
+     * Output to browser
+     *
+     * @param content
+     *            output content
+     */
+    private void writeContent(String content) {
+        HttpServletResponse response = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes())
+                .getResponse();
+        response.reset();
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Content-Type", "text/plain;charset=UTF-8");
+        response.setHeader("icop-content-type", "exception");
+        PrintWriter writer = null;
+        try {
+            writer = response.getWriter();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        writer.print(content);
+        writer.flush();
+        writer.close();
+    }
+}
+```
+
+### Validation
+
+In traditional ways, `BindingResult` is necessary but it will throw exception
+
+```java
+@GetMapping("authorize")
+public void authorize(@Valid AuthorizeIn authorize, BindingResult ret){
+    if(result.hasFieldErrors()){
+            List<FieldError> errorList = result.getFieldErrors();
+            //Throw Excetpion by assert
+            errorList.stream().forEach(item -> Assert.isTrue(false,item.getDefaultMessage()));
+        }
+}
+
+public class AuthorizeIn extends BaseModel{
+
+    @NotBlank(message = "need response_type")
+    private String responseType;
+    @NotBlank(message = "need client_id")
+    private String ClientId;
+
+    private String state;
+
+    @NotBlank(message = "need redirect_uri")
+    private String redirectUri;
+
+    public String getResponseType() {
+        return responseType;
+    }
+
+    public void setResponseType(String responseType) {
+        this.responseType = responseType;
+    }
+
+    public String getClientId() {
+        return ClientId;
+    }
+
+    public void setClientId(String clientId) {
+        ClientId = clientId;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public String getRedirectUri() {
+        return redirectUri;
+    }
+
+    public void setRedirectUri(String redirectUri) {
+        this.redirectUri = redirectUri;
+    }
+}
+```
+
+So it is better to use Handle Exception method.
+
+```java
+	//Intercept @GetMapping method   
+	@Pointcut("@annotation(org.springframework.web.bind.annotation.GetMapping)")
+    private void webPointcut() {
+    }
+
+    @AfterThrowing(pointcut = "webPointcut()",throwing = "e")
+    public void afterThrowing(Exception e) throws Throwable {
+        logger.debug("exception！");
+        if(StringUtils.isNotBlank(e.getMessage())){
+                           writeContent(e.getMessage());
+        }else{
+            writeContent("Parameter Error！");
+        }
+    }
+    
+    private void writeContent(String content) {
+    	//output
+    }
+```
+
+Encaplulate `validate` method
+```java
+protected void validate(BindingResult result){
+        if(result.hasFieldErrors()){
+            List<FieldError> errorList = result.getFieldErrors();
+            errorList.stream().forEach(item -> Assert.isTrue(false,item.getDefaultMessage()));
+        }
+    }
+```
 
 ## URL
 
