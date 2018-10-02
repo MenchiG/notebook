@@ -8,7 +8,7 @@ category: java xml jaxb
 
 ## External bindings
 
-Use External bindings file to customize class name
+Use External bindings file to customize class name<!--more-->
 
 | bindings |Schema Type|
 |----------|-----------|
